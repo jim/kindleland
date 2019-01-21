@@ -71,5 +71,63 @@ A 4-bit number will hold values from 0-15, which is all that's needed to represe
 The framebuffer on the Kindle packs two 4-bit pixels into each byte. This means that each row of the display uses 300 bytes to hold the values of its 600 pixels. This is enough information to start working with the raw framebuffer data. Writing to a pixel will involve setting either the higher or lower 4 bits of the appropriate byte to a value representing the grey value to display.
 
 * I tried using some code I had written for another experiment to draw to the framebuffer, leveraging [this framebuffer library](https://github.com/kaey/framebuffer). Unfortunately, I ran into an issue because the value of `Smem_len` is zero, so this library thinks there is nowhere to write data to. I hardcoded `483328` (which I got from running `eips -i`), which allowed something to be drawn to the screen. Looking at what I would need to do to modify that library to handle 4-bit pixels packed two to a byte instead of 4-byte RGBA pixels, I decided it would be easy enough to `Mmap` the framebuffer myself and write a few utility functions. I'm pretty sure that I only need to map 240,000 bytes to do what I need to do, and since this code is only ever going to run on this device (any maybe a DX if I find one), hardcoding these values is easier than troubleshooting why the `FBIOGET_FSCREENINFO` ioctl syscall isn't returning the expected value for `Smem_len`.
-* After writing to the framebuffer, you have to tell the device to update the display. So far I have been using `echo 1 > /proc/eink/update-display` to do this. There is probably a better way.
+* After writing to the framebuffer, you have to tell the device to update the display. So far I have been using `echo 1 > /proc/eink_fb/update-display` to do this. There is probably a better way.
 * I was able to draw some simple graphics on the display at the end of this session.
+
+## Day 5
+
+Today's another day for research and poking around.
+
+`/etc/init.d/battcheck` returns a bunch of interesting battery statistics:
+
+```
+system: I battcheck:def:running
+Sat Jan 19 19:52:48 2019  INFO:battery voltage: 4136 mV
+Sat Jan 19 19:52:48 2019  INFO:battery charge: 86%
+system: I battcheck:def:current voltage = 4133mV
+Sat Jan 19 19:52:48 2019  INFO:battery charge: 86%
+Sat Jan 19 19:52:48 2019  INFO:battery voltage: 4136 mV
+Sat Jan 19 19:52:48 2019  INFO:battery current: 337 mA
+system: I battcheck:def:gasgauge capacity=86% volts=4136 mV current=337 mA
+system: I battcheck:def:Waiting for 3460mV or 4%
+system: I battcheck:def:battery sufficient, booting to normal runlevel
+```
+
+Here's the output of `lsmod`:
+
+```
+Module                  Size  Used by
+ar6000                161076  0
+g_ether                21096  0
+eink_fb_shim          116732  0
+eink_fb_hal_broads    397532  0
+eink_fb_hal            59764  5 eink_fb_shim,eink_fb_hal_broads
+volume                  8900  0
+fiveway                23552  0
+mxc_keyb               15904  0
+uinput                  7776  0
+fuse                   48348  2
+arcotg_udc             38628  1 g_ether
+mwan                    7324  0
+```
+
+There isn't a `tree` command on the Kindle, and I've been using `ls -R` a lot to explore the filesystem. I'm considering `scp`ing the entire disk to the Mac so I can use my usual tools on it.
+
+The Kindle is running [alsa](https://www.alsa-project.org/main/index.php/Main_Page) version 1.0.13:
+
+```
+$ alsactl -v
+alsactl version 1.0.13`
+```
+
+To run `alsamixer`, `TERM` needs to be set to `xterm` (mine was `xterm-256color`).
+
+## Day 6
+
+I spent some timing looking at graphics packages, with an eye toward rendering text to the screen in a scalable way. I originally planned to use bitmap fonts due to their ease of use, but then I found a [pure-Go implementation of freetype](https://github.com/golang/freetype), and then, a while later, [gg](https://github.com/fogleman/gg), which provides a nice API for drawing graphics and text. It even includes wrapping text to lines, which is something that isn't provided by `freetype`.
+
+`man` isn't available on the Kindle, which makes figuring out the arguments for the old versions of everything a little more challenging.
+
+One of the twists of working with the eink display is that values that would appear on light-emitting displays as dark colors instead appear as light colors on eink displays. This in effect inverses everything, which needs to be compensated for in somewhere in the graphics stack of a program.
+
+* Wrote a simple program `circle` to draw a black circle on the center of the Kindle screen, centering the string `Hello!` within it. There are 7 concentric circles with decreasing stroke width surrounding it.
