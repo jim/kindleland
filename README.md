@@ -144,3 +144,8 @@ Mem:           250        219         30          0         82         97
 -/+ buffers/cache:         40        210
 Swap:            0          0          0
 ```
+
+## Day 7
+
+* Added a new executable, `screengrab`, that generates a PNG from the current state of the framebuffer. Wrapped this in a script to capture a screenshot on the device, `scp` it back to the host, and open it in the default program.
+* Moved all scripts into `scripts` directory to keep the root of the repo tidy.

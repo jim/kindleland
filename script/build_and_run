@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 env GOOS=linux GOARCH=arm GOARM=6 go build -o build/$1 cmd/$1/$1.go
 echo -n "."

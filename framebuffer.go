@@ -86,3 +86,35 @@ func (fb *FrameBuffer) UpdateScreen() error {
 	}
 	return nil
 }
+
+func (fb *FrameBuffer) At(x, y int) (color.Gray, error) {
+	offset := x/2 + (y * fb.Width / 2)
+	if offset >= len(fb.buffer) {
+		return color.Gray{}, fmt.Errorf("%d is out of range; max is %d; x: %d, y: %d", offset, len(fb.buffer)-1, x, y)
+	}
+
+	bits := uint8(fb.buffer[offset])
+
+	var c uint8
+	if x%2 == 0 {
+		c = bits & 240
+	} else {
+		c = (bits & 15) << 4
+	}
+	return color.Gray{Y: 255 - c}, nil
+}
+
+// Return an image.Image containing the current value of the framebuffer.Image
+// This is not what is shown on the screen unless no modifications have been made since
+// the last call to UpdateScreen().
+func (fb *FrameBuffer) Image() image.Image {
+	rect := image.Rect(0, 0, fb.Width, fb.Height)
+	img := image.NewGray(rect)
+	for y := 0; y < fb.Height; y++ {
+		for x := 0; x < fb.Width; x++ {
+			gray, _ := fb.At(x, y)
+			img.SetGray(x, y, gray)
+		}
+	}
+	return img
+}
