@@ -1,0 +1,8 @@
+#!/bin/bash
+
+env GOOS=linux GOARCH=arm GOARM=6 go build -o build/$1 cmd/$1/$1.go
+echo -n "."
+scp -q build/$1 root@192.168.2.2:$1
+echo -n "."
+ssh -q root@192.168.2.2 "/usr/sbin/eips -c && ./$1"
+echo "."

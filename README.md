@@ -131,3 +131,7 @@ I spent some timing looking at graphics packages, with an eye toward rendering t
 One of the twists of working with the eink display is that values that would appear on light-emitting displays as dark colors instead appear as light colors on eink displays. This in effect inverses everything, which needs to be compensated for in somewhere in the graphics stack of a program.
 
 * Wrote a simple program `circle` to draw a black circle on the center of the Kindle screen, centering the string `Hello!` within it. There are 7 concentric circles with decreasing stroke width surrounding it.
+
+* Finally setup ssh keys so I could ssh into the Kindle without hitting enter at the password prompt by following [these directions](https://www.mobileread.com/forums/showthread.php?t=204942). I copied the public key over using  `scp kindle_rsa.pub root@192.168.2.2:/mnt/us/usbnet/etc/authorized_key`.
+
+* Added `build_and_run`, a script to automate the process of compiling a program, copying it to the Kindle, and running it.
