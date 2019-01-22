@@ -149,3 +149,32 @@ Swap:            0          0          0
 
 * Added a new executable, `screengrab`, that generates a PNG from the current state of the framebuffer. Wrapped this in a script to capture a screenshot on the device, `scp` it back to the host, and open it in the default program.
 * Moved all scripts into `scripts` directory to keep the root of the repo tidy.
+
+## Day 8
+
+* I attempted to play a variety of sound files, including those I found on the Kindle via `aplay`, but all that came out of the speaker was a deafening static that came and went in waves. Not completely unlike an ocean, really, but also fairly unpleasant and not at all resembling the [piano music](http://www.pianosociety.com/pages/fieldnocturnes/) I was hoping to hear. [This page](), however, prompted me to attempt to play a file that was created on the device using `arecord`, which worked! So converting audio to the format of that file should allow for custom sound to be played. 8khz mono isn't going to sound great, but it's better than nothing.
+
+* I later learned that the issue is that `aplay` expects raw audio data (say, from a WAV file). A 44.1khz stereo WAV played fine. I was previously trying to play an MP3, which isn't raw audio data and needs to be decoded first.
+
+`gasgauge` returns stats related to the battery and charging status of the device:
+
+```
+[root@kindle root]# gasgauge-info -c
+100%
+Tue Jan 22 03:01:11 2019  INFO:battery charge: 100%
+```
+
+The Kindle has a `say` command that will speak arbitrary text ([source](https://grenville.wordpress.com/2011/09/26/kindle-3-playing-with-text-to-speech/)). I confirmed that this works!
+
+`evtest` is available on the Kindle, which makes exploring the hardware keyboard pretty straight forward. The main keyboard, five-way control, and paging buttons are all seperate devices.
+
+* Wrote a small program to read key events from the main keyboard (`/dev/input/event0`) and print the raw bytes to the screen:
+  ```
+  $ script/build_and_run keys
+  ...16 [71 174 70 92 195 96 12 0 1 0 52 0 1 0 0 0]
+  16 [72 174 70 92 232 199 0 0 1 0 52 0 0 0 0 0]
+  16 [72 174 70 92 31 218 10 0 1 0 52 0 1 0 0 0]
+  16 [72 174 70 92 232 252 12 0 1 0 52 0 0 0 0 0]
+  16 [72 174 70 92 175 170 14 0 1 0 52 0 1 0 0 0]
+  16 [73 174 70 92 24 61 1 0 1 0 52 0 0 0 0 0]
+  ```

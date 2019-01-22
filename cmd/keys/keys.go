@@ -3,32 +3,21 @@ package main
 import (
 	"fmt"
 	"os"
-	"syscall"
 )
 
 func main() {
-	file, err := os.Open("/dev/tty")
-	defer file.Close()
+	keyboard, err := os.Open("/dev/input/event0")
+	defer keyboard.Close()
 	if err != nil {
 		panic(err)
 	}
-	fd := int(file.Fd())
-	buf := make([]byte, 1)
-	data := make(chan byte)
-
-	go func() {
-		for {
-			_, err := syscall.Read(fd, buf)
-			if err != nil {
-				close(data)
-				return
-			}
-			data <- buf[0]
-		}
-	}()
+	buf := make([]byte, 16)
 
 	for {
-		b := <-data
-		fmt.Println(b)
+		n, err := keyboard.Read(buf)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(n, buf)
 	}
 }
