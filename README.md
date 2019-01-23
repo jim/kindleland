@@ -178,3 +178,50 @@ The Kindle has a `say` command that will speak arbitrary text ([source](https://
   16 [72 174 70 92 175 170 14 0 1 0 52 0 1 0 0 0]
   16 [73 174 70 92 24 61 1 0 1 0 52 0 0 0 0 0]
   ```
+
+## Day 9
+
+The Kindle Keyboard Linux kernel is `2.6.26`:
+
+```
+[root@kindle root]# uname -r
+2.6.26-rt-lab126
+```
+
+[This site](https://elixir.bootlin.com/linux/v2.6.26/source/include/linux/time.h) is super useful for looking up the definitions of `input_type` on a specific version of the Linux kernel, which I need to do in order to load the raw data I'm receiving from `/dev/input/event0` into a Go struct.
+
+* Wrote code to handle processing the events coming from `/dev/input/event0` (the main keyboard) and push Go structs representing them onto a channel. Used [stringer](https://godoc.org/golang.org/x/tools/cmd/stringer) to generate the `String()` method for these types.
+
+The Kindle Keyboard hardware or drivers (not sure which) are interesting. Look at what events are sent when the the _shift_ key is pressed and released, followed by the _z_ key:
+
+```
+{Time:2019-01-23 03:30:09.780995 +0015 GMT-00:20 Type:KeyDown Key:KeyShift}
+{Time:2019-01-23 03:30:09.871003 +0015 GMT-00:20 Type:KeyUp Key:KeyShift}
+{Time:2019-01-23 03:30:10.70096 +0015 GMT-00:20 Type:KeyDown Key:KeyZ}
+{Time:2019-01-23 03:30:10.860955 +0015 GMT-00:20 Type:KeyUp Key:KeyZ}
+```
+
+Compare this to the same thing, but for the _alt_ key:
+
+```
+{Time:2019-01-23 03:30:15.191005 +0015 GMT-00:20 Type:KeyDown Key:KeyAlt}
+{Time:2019-01-23 03:30:15.191294 +0015 GMT-00:20 Type:KeyDown Key:KeyZ}
+{Time:2019-01-23 03:30:15.191521 +0015 GMT-00:20 Type:KeyUp Key:KeyZ}
+{Time:2019-01-23 03:30:15.191528 +0015 GMT-00:20 Type:KeyUp Key:KeyAlt}
+```
+
+Notice how the _alt_ `KeyUp` event isn't sent until after another key is pressed, which is the same thing you see if the modifier was held down by the user:
+
+```
+{Time:2019-01-23 03:30:17.881007 +0015 GMT-00:20 Type:KeyDown Key:KeyShift}
+{Time:2019-01-23 03:30:18.180979 +0015 GMT-00:20 Type:KeyDown Key:KeyZ}
+{Time:2019-01-23 03:30:18.400987 +0015 GMT-00:20 Type:KeyUp Key:KeyZ}
+{Time:2019-01-23 03:30:18.630976 +0015 GMT-00:20 Type:KeyUp Key:KeyShift}
+
+{Time:2019-01-23 03:30:22.240992 +0015 GMT-00:20 Type:KeyDown Key:KeyAlt}
+{Time:2019-01-23 03:30:22.241281 +0015 GMT-00:20 Type:KeyDown Key:KeyZ}
+{Time:2019-01-23 03:30:22.400988 +0015 GMT-00:20 Type:KeyUp Key:KeyZ}
+{Time:2019-01-23 03:30:22.700979 +0015 GMT-00:20 Type:KeyUp Key:KeyAlt}
+```
+
+This also means that (at least using the technique I am and listening to `dev/input/event0`) it's impossible to detect a keypress of only the `alt` key.

@@ -2,22 +2,17 @@ package main
 
 import (
 	"fmt"
-	"os"
+
+	"github.com/jim/kindleland"
 )
 
 func main() {
-	keyboard, err := os.Open("/dev/input/event0")
-	defer keyboard.Close()
+	channel, err := kindleland.NewKeyboardListener("/dev/input/event0")
 	if err != nil {
 		panic(err)
 	}
-	buf := make([]byte, 16)
-
 	for {
-		n, err := keyboard.Read(buf)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(n, buf)
+		kevent := <-channel
+		fmt.Printf("%+v\n", kevent)
 	}
 }
