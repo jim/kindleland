@@ -229,3 +229,5 @@ This also means that (at least using the technique I am and listening to `dev/in
 * Wrote a utility program, `simulate_eink`, to convert a PNG by mapping the shades of gray to a pallete that is perceptually much closer to what the eink screen looks like to a human. It also adds a bit of random noise for realism.
 
 * Updated the `draw` command to use the latest `FrameBuffer` code.
+
+* Added example images for `draw` and `circle`.
