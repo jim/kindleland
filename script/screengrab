@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
+
 mkdir -p screengrabs/
 open=''
 
 while getopts 'o' flag; do
   case "${flag}" in
     o) open='true' ;;
+    *) open='' ;;
   esac
 done
 
@@ -14,11 +17,11 @@ filename=screengrabs/screengrab_$now.png
 
 ssh -q root@192.168.2.2 "./screengrab"
 echo -n "."
-scp -q root@192.168.2.2:screengrab.png $filename
+scp -q root@192.168.2.2:screengrab.png "$filename"
 echo -n "."
 ssh -q root@192.168.2.2 "rm screengrab.png"
 echo "."
 
 if [[ $open == 'true' ]]; then
-  open $filename
+  open "$filename"
 fi
