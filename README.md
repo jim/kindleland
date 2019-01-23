@@ -225,3 +225,5 @@ Notice how the _alt_ `KeyUp` event isn't sent until after another key is pressed
 ```
 
 This also means that (at least using the technique I am and listening to `dev/input/event0`) it's impossible to detect a keypress of only the `alt` key.
+
+* Wrote a utility program, `simulate_eink`, to convert a PNG by mapping the shades of gray to a pallete that is perceptually much closer to what the eink screen looks like to a human. It also adds a bit of random noise for realism.
