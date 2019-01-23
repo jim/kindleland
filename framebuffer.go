@@ -32,6 +32,7 @@ func NewFrameBuffer(device string, width, height int) (*FrameBuffer, error) {
 	}, nil
 }
 
+// Pixel sets the value of the pixel at x, y.
 func (fb *FrameBuffer) Pixel(x, y int, level uint8) error {
 	if level < 0 || level > 15 {
 		return fmt.Errorf("level must be between 0 and 15, got %d", level)
@@ -60,6 +61,8 @@ type FrameBuffer struct {
 	Height int
 }
 
+// ApplyImage copies each pixel value from img and places it at the same position in the framebuffer.
+// img and the framebuffer are expected to have the same dimensions. No checks are done to verify this.
 func (fb *FrameBuffer) ApplyImage(img image.Image) error {
 	for y := 0; y < fb.Height; y++ {
 		for x := 0; x < fb.Width; x++ {
@@ -74,7 +77,7 @@ func (fb *FrameBuffer) ApplyImage(img image.Image) error {
 	return nil
 }
 
-// Flush any changes to the framebuffer to the display
+// UpdateScreen flushes any changes to the framebuffer to the display.
 func (fb *FrameBuffer) UpdateScreen() error {
 	file, err := os.OpenFile("/proc/eink_fb/update_display", os.O_WRONLY, 0)
 	defer file.Close()
@@ -87,6 +90,7 @@ func (fb *FrameBuffer) UpdateScreen() error {
 	return nil
 }
 
+// At returns the value of the pixel at x, y.
 func (fb *FrameBuffer) At(x, y int) (color.Gray, error) {
 	offset := x/2 + (y * fb.Width / 2)
 	if offset >= len(fb.buffer) {
@@ -104,9 +108,9 @@ func (fb *FrameBuffer) At(x, y int) (color.Gray, error) {
 	return color.Gray{Y: 255 - c}, nil
 }
 
-// Return an image.Image containing the current value of the framebuffer.Image
-// This is not what is shown on the screen unless no modifications have been made since
-// the last call to UpdateScreen().
+// Image returns an image.Image containing the current value of the framebuffer.Image
+// This should be in sync with the framebuffer, but there is no guarantee that the screen and the framebuffer are
+// in sync unless UpdateScreen() was just called.
 func (fb *FrameBuffer) Image() image.Image {
 	rect := image.Rect(0, 0, fb.Width, fb.Height)
 	img := image.NewGray(rect)
