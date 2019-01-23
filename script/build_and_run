@@ -4,7 +4,7 @@ set -euxo pipefail
 
 env GOOS=linux GOARCH=arm GOARM=6 go build -o "build/$1" "cmd/$1/$1.go"
 echo -n "."
-ssh -q root@192.168.2.2 "killall $1 && rm $1"
+ssh -q root@192.168.2.2 "killall $1 && rm $1" || true
 echo -n "."
 scp -q "build/$1" "root@192.168.2.2:$1"
 echo -n "."
