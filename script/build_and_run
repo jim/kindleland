@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
 env GOOS=linux GOARCH=arm GOARM=6 go build -o "build/$1" "cmd/$1/$1.go"
 echo -n "."

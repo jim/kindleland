@@ -231,3 +231,86 @@ This also means that (at least using the technique I am and listening to `dev/in
 * Updated the `draw` command to use the latest `FrameBuffer` code.
 
 * Added example images for `draw` and `circle`.
+
+## Day 10
+
+Today I wanted to run the built-in `say` whenever a key on the keyboard was pressed. Unfortunately, I hit an issue with using `exec.Command`:
+
+```
+$ script/build_and_run letters
+...Q
+goroutine 1 [running]:
+runtime/debug.Stack(0x1045a000, 0xe8fa0, 0x104481e0)
+	/usr/local/Cellar/go/1.10.2/libexec/src/runtime/debug/stack.go:24 +0x80
+main.main()
+	/Users/jimb/go/src/github.com/jim/kindleland/cmd/letters/letters.go:25 +0x124
+
+panic: fork/exec /usr/bin/say: function not implemented
+
+goroutine 1 [running]:
+main.main()
+	/Users/jimb/go/src/github.com/jim/kindleland/cmd/letters/letters.go:26 +0x230
+```
+
+After some searching online, I was worried that `exec.Command` might be relying on glibc, which the Kindle has an ancient version of:
+
+```
+[root@kindle root]# /lib/libc.so.6
+GNU C Library stable release version 2.5, by Roland McGrath et al.
+Copyright (C) 2006 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Compiled by GNU CC version 4.1.2.
+Compiled on a Linux 2.6.15 system on 2008-06-10.
+...
+```
+
+That software was compiled over a decade ago. And indeed there are threads about Golang not running on old versions of glibc, and I couldn't find a specific glibc version requirement, but I wanted to get a better look at what was going on. To examine what syscalls the program was making and what/which errors it was getting back, I ran the program with `strace` and saw the following:
+
+```
+pipe2(0x10431dac, O_CLOEXEC)            = -1 ENOSYS (Function not implemented)
+pipe2(0x10431dac, 0)                    = -1 ENOSYS (Function not implemented)
+```
+
+The [pipe2 syscall](http://man7.org/linux/man-pages/man2/pipe.2.html) was added in Linux 2.6.27, and the Kindle has 2.6.23 (which is currently listed as Go's minimum supported Linux version).
+
+`os.Pipe` is called several layers within the `exec.Command` code when `Command.Run()` is executed. There is a [fallback in the 
+code](https://github.com/golang/go/blob/master/src/os/pipe_linux.go#L17-L27) to handle `pipe2` not being supported, and you can see how the calls to `syscall.Pipe2` and `syscall.Pipe` map to the two syscalls shown above.
+
+```golang
+// Pipe returns a connected pair of Files; reads from r return bytes written to w.
+// It returns the files and an error, if any.
+func Pipe() (r *File, w *File, err error) {
+	var p [2]int
+
+	e := syscall.Pipe2(p[0:], syscall.O_CLOEXEC)
+	// pipe2 was added in 2.6.27 and our minimum requirement is 2.6.23, so it
+	// might not be implemented.
+	if e == syscall.ENOSYS {
+		// See ../syscall/exec.go for description of lock.
+		syscall.ForkLock.RLock()
+    e = syscall.Pipe(p[0:])
+    ...
+```
+
+Except, of course, that the second syscall should be `pipe`, not `pipe2` based on the fallback code. The problem is that `syscall.Pipe` is implemented using the `pipe2` syscall on linux/arm! This change happened [here](
+https://github.com/golang/go/commit/9b3ccc082f6bda01727fc98096f7d197bba830db#diff-4457f0b3f1fea7981d43c6657258588bR31).
+
+By restoring the previous definition of `syscall.Pipe` in `syscall/syscall_linux_arm.go`, I was able to get my code that uses `exec.Command` to run properly on the Kindle.
+
+In the process of working through this, I attemped to compile Delve for some on-device debugging before discovering that [Delve doesn't support ARM](https://github.com/go-delve/delve/issues/118).
+
+And of course, after digging into these syscalls, I read that you can also [just write text to `/var/tmp/ttsUSFifo`](https://grenville.wordpress.com/2011/09/26/kindle-3-playing-with-text-to-speech/) to use the Kindle's text to speech.
+
+* Wrote a little program, `speak`, that uses `say` to speak the name of each key as it is pressed.
+
+## Day 11
+
+I'm having an issue using `gg` to render text to an image and display it on the screen. There is a memory leak somewhere, and after a certain number of updates the devices bogs down and things get weird. I am going to do some troubleshooting and see if the issue is in my code and in the way I am reusing the `gg.Context` multiple times instead of creating a new one each time I want to draw something.
+
+[FBink](https://github.com/NiLuJe/FBInk) is a C library that does a lot of what I want to do. It was originally designed for the Kobo but now also supports Kindles and other Eink devices (they tend to have very similar hardware and software stacks). There are [Go bindings for it](https://github.com/shermp/go-fbink-v2), but to use them you have to enable `cgo`, which is something I would like to avoid to keep the build process as simple as possible. However, these libraries are excellent references as I move forward with a pure-Go approach.
+
+Specifically interesting are the parts of FBInk that expose how to update only part of the screen. So far I have been doing entire device updates, which are slow and provide a jarring experience for the user.
+
+Amazon posts the [source code they are required to release](https://www.amazon.com/gp/help/customer/display.html?nodeId=200203720) for all Kindle devices and apps. `linux-2.6.26/include/linux/einkfb.h` shows a lot of the details used by FBInk to do its work (and is actually used directly in that project).

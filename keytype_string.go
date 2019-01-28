@@ -4,7 +4,7 @@ package kindleland
 
 import "strconv"
 
-const _KeyType_name = "KeyDeleteKeyQKeyWKeyEKeyRKeyTKeyYKeyUKeyIKeyOKeyPKeyReturnKeyAKeySKeyDKeyFKeyGKeyHKeyJKeyKKeyLKeyShiftKeyZKeyXKeyCKeyVKeyBKeyNKeyMKeyPeriodKeyAltKeySpaceKeyHomeKeySymKeyMenuKeyBackKeyText"
+const _KeyType_name = "KeyDeleteKeyQKeyWKeyEKeyRKeyTKeyYKeyUKeyIKeyOKeyPKeyReturnKeyAKeySKeyDKeyFKeyGKeyHKeyJKeyKKeyLKeyShiftKeyZKeyXKeyCKeyVKeyBKeyNKeyMKeyPeriodKeyAltKeySpaceKeyHomeKeyNextPageLeftKeyPrevPageRightKeySymKeyMenuKeyBackKeyTextKeyNextPageRightKeyPrevPageLeft"
 
 var _KeyType_map = map[KeyType]string{
 	14:  _KeyType_name[0:9],
@@ -40,10 +40,14 @@ var _KeyType_map = map[KeyType]string{
 	56:  _KeyType_name[139:145],
 	57:  _KeyType_name[145:153],
 	102: _KeyType_name[153:160],
-	126: _KeyType_name[160:166],
-	139: _KeyType_name[166:173],
-	158: _KeyType_name[173:180],
-	190: _KeyType_name[180:187],
+	104: _KeyType_name[160:175],
+	109: _KeyType_name[175:191],
+	126: _KeyType_name[191:197],
+	139: _KeyType_name[197:204],
+	158: _KeyType_name[204:211],
+	190: _KeyType_name[211:218],
+	191: _KeyType_name[218:234],
+	193: _KeyType_name[234:249],
 }
 
 func (i KeyType) String() string {
