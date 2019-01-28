@@ -34,7 +34,7 @@ There is a command called `eips` that will perform various functions with the sc
 
 * I tried to display a PNG, and something happened, but the image only partially was displayed and was stretched. [This image from the weather project](https://github.com/mpetroff/kindle-weather-display/blob/master/kindle/weather-image-error.png), however, worked, so it's possible. There is probably something wrong with the image format I am using.
 
-# Day 3
+## Day 3
 
 Today I wanted to try to draw something to the screen.
 
@@ -62,7 +62,7 @@ I had previous cross-compiled Go and run it on other ARM devices, so I figured i
   `env GOOS=linux GOARCH=arm go build test.go` produced an executable that resulted in an `Illegal instruction` when run on the Kindle. Adding `GOARM=6` fixed this, though, and allowed the program to run!
 * So far, compiling on the device, `scp`ing the program over to the Kindle, and running it in SSH session has been working pretty well. At some point it would be nice to automate this.
 
-# Day 4
+## Day 4
 
 Today I wanted to draw some graphics. The Kindle Keyboard has a framebuffer device available at `/dev/fb0`, so that is where I'm going to start. Once I saw that Go would run on the device, I became a lot less interested in using Java and the KDK.
 
@@ -314,3 +314,17 @@ I'm having an issue using `gg` to render text to an image and display it on the 
 Specifically interesting are the parts of FBInk that expose how to update only part of the screen. So far I have been doing entire device updates, which are slow and provide a jarring experience for the user.
 
 Amazon posts the [source code they are required to release](https://www.amazon.com/gp/help/customer/display.html?nodeId=200203720) for all Kindle devices and apps. `linux-2.6.26/include/linux/einkfb.h` shows a lot of the details used by FBInk to do its work (and is actually used directly in that project).
+
+## Day 12
+
+Today was a day spent learning about `cgo`, linux headers, and `go generate`.
+
+`go tool cgo -godefs` ignores the special `// #cgo` comments, so options that need to be passed to the C compiler have to be passed on the command line. The docs aren't super clear about this, but I was able to sort it out by using the `-gcc-debug` flag to `cgo` and then running that output through `clanng` myself, adding the `-v` flag so I could experiment with which options needed to be passed to get the lookup paths correct.
+
+I ended up using the following to generate Go code from the `einkfb.h` file included in the GPL source distribution for the Kindle:
+
+```
+go tool cgo -godefs -- -Ivendor/linux-2.6.26-lab126/include -D__KERNEL__ constant_defs.go > constants.go
+```
+
+By putting this line in a shell script, `script/generate_constants`, I was able to invoke it by adding a special comment to `constant_defs.go` and then running `go generate`.

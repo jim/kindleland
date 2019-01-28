@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+go tool cgo -godefs -- -Ivendor/linux-2.6.26-lab126/include -D__KERNEL__ constant_defs.go > constants.go
