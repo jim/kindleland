@@ -328,3 +328,22 @@ go tool cgo -godefs -- -Ivendor/linux-2.6.26-lab126/include -D__KERNEL__ constan
 ```
 
 By putting this line in a shell script, `script/generate_constants`, I was able to invoke it by adding a special comment to `constant_defs.go` and then running `go generate`.
+
+## Day 13
+
+I went down a rabbit hole learning more about linux syscalls, ioctls, and how to interact with them in Go. I got the basic screen update working by making an IOCTL call on `/dev/fb/0` and was able to specify "fast" or "slow", although I haven't yet sorted out what the difference between the different options are.
+
+My next task is to sort out how to do a partial screen update. To do so, I need to pass a pointer to a struct into the syscall which contains information about how to do the update: what areas to (not) update, what _FX_ to use, etc. There are a few levels of software running on the Kindle 3, which makes keeping everything straight a little bit harder.
+
+[This article](https://blog.gopheracademy.com/advent-2017/unsafe-pointer-and-system-calls/) was the best thing I found while trying to figure out how I would pass an area of the screen to update.
+
+It appears that `cgo -godefs` doesn't support most macros, which makes the way I was trying to define the constants from a pervious day a dead end as the header I am working with includes a lot of stuff like this:
+
+```c
+#define FBIO_EINK_UPDATE_DISPLAY            _IO(FBIO_MAGIC_NUMBER, 0xdb) // 0x46db (fx_type)
+#define FBIO_EINK_UPDATE_DISPLAY_AREA       _IO(FBIO_MAGIC_NUMBER, 0xdd) // 0x46dd (update_area_t *)
+```
+
+I am probably just going to define the values I need in Go as they come up instead of attempting to autogenerate things from the C header. `godefs` may prove to be a useful tool, though, because it will automate the conversion when I need new values.
+
+I also saw that the built-in `syscall` package is considered deprecated and that you are supposed to use [sys](https://godoc.org/golang.org/x/sys/unix) instead.
