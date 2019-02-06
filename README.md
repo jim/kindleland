@@ -368,3 +368,34 @@ RUN git clone https://github.com/NiLuJe/FBInk
 WORKDIR /root/src/FBInk
 RUN git submodule update --init
 ```
+
+## Day 15
+
+Spent some time getting the various screen update functions to work from Go without using FBInk. Ran `strace eips -c` to see how that program cleared the screen. The interesting part:
+
+```
+...
+open("/dev/fb/0", O_RDWR)               = 3
+ioctl(3, FBIOGET_VSCREENINFO or PF_IOCTL_INIT, 0xbeb52ae0) = 0
+mmap2(NULL, 240000, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, 3, 0) = 0x40146000
+msync(0x40146000, 240000, MS_SYNC)      = 1
+ioctl(3, FBIO_EINK_CLEAR_SCREEN, 0)     = 0
+close(3)
+...
+```
+
+It's good to see that program is also `mmap2`ing `240000` bytes, just as I am.
+
+It seems that you need to clear the screen twice to really get a clean slate.
+
+I also discovered that the main keyboard send different keycodes when `Alt` is combined with the top row of letter keys:
+
+```
+# Alt-Q
+{Time:2019-02-06 02:13:56.412672 +0015 GMT-00:20 Type:KeyDown Key:KeyType(2)}
+{Time:2019-02-06 02:13:56.57269 +0015 GMT-00:20 Type:KeyUp Key:KeyType(2)}
+
+# Alt-P
+{Time:2019-02-06 02:14:01.742672 +0015 GMT-00:20 Type:KeyDown Key:KeyType(11)}
+{Time:2019-02-06 02:14:01.892816 +0015 GMT-00:20 Type:KeyUp Key:KeyType(11)}
+```

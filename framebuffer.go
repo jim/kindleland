@@ -6,6 +6,8 @@ import (
 	"image/color"
 	"os"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 func Gray4Downsample(c color.Color) uint8 {
@@ -77,14 +79,41 @@ func (fb *FrameBuffer) ApplyImage(img image.Image) error {
 	return nil
 }
 
-// UpdateScreen flushes any changes to the framebuffer to the display.
-func (fb *FrameBuffer) UpdateScreen() error {
-	file, err := os.OpenFile("/proc/eink_fb/update_display", os.O_WRONLY, 0)
+// ClearScreen clears the screen and empties the framebuffer
+func (fb *FrameBuffer) ClearScreen() error {
+	file, err := os.OpenFile(FrameBufferDevice, os.O_WRONLY, 0)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
-	if _, err := file.Write([]byte("1\n")); err != nil {
+
+	return unix.IoctlSetInt(int(file.Fd()), FBIOEinkClearScreen, 0)
+}
+
+// UpdateScreen flushes any changes to the framebuffer to the display.
+func (fb *FrameBuffer) UpdateScreen() error {
+	file, err := os.OpenFile(FrameBufferDevice, os.O_WRONLY, 0)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = unix.IoctlGetInt(int(file.Fd()), FBIOEinkUpdateDisplay)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (fb *FrameBuffer) UpdateScreenFx(mode UpdateMode) error {
+	file, err := os.OpenFile(FrameBufferDevice, os.O_WRONLY, 0)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	err = unix.IoctlSetPointerInt(int(file.Fd()), FBIOEinkUpdateDisplayFx, int(mode))
+	if err != nil {
 		return err
 	}
 	return nil
