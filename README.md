@@ -347,3 +347,24 @@ It appears that `cgo -godefs` doesn't support most macros, which makes the way I
 I am probably just going to define the values I need in Go as they come up instead of attempting to autogenerate things from the C header. `godefs` may prove to be a useful tool, though, because it will automate the conversion when I need new values.
 
 I also saw that the built-in `syscall` package is considered deprecated and that you are supposed to use [sys](https://godoc.org/golang.org/x/sys/unix) instead.
+
+## Day 14
+
+Today I decided to try to use the FBInk library a try. I did end up getting it to compile in a Docker container, although it took a lot of time to get everything working and for the cross-compiling toolchain it expects to install itself. I'm still pretty sold on avoiding C, but I am close to being able to use this library to see if that is useful.
+
+```docker
+FROM ubuntu:latest
+RUN apt-get update
+RUN apt-get -y install gperf help2man bison texinfo flex gawk git build-essential autoconf libncurses5-dev curl wget file
+WORKDIR /root/src
+RUN git clone https://github.com/koreader/koxtoolchain.git
+WORKDIR /root/src/koxtoolchain
+ENV CT_EXPERIMENTAL=y
+ENV CT_ALLOW_BUILD_AS_ROOT=y
+ENV CT_ALLOW_BUILD_AS_ROOT_SURE=y
+RUN ./gen-tc.sh kindle
+WORKDIR /root/src
+RUN git clone https://github.com/NiLuJe/FBInk
+WORKDIR /root/src/FBInk
+RUN git submodule update --init
+```
