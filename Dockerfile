@@ -7,7 +7,7 @@ WORKDIR /root/src/koxtoolchain
 ENV CT_EXPERIMENTAL=y
 ENV CT_ALLOW_BUILD_AS_ROOT=y
 ENV CT_ALLOW_BUILD_AS_ROOT_SURE=y
-# RUN ./gen-tc.sh kindle
+RUN ./gen-tc.sh kindle
 
 WORKDIR /root/src
 RUN git clone https://github.com/NiLuJe/FBInk

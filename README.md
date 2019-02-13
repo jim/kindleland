@@ -399,3 +399,11 @@ I also discovered that the main keyboard send different keycodes when `Alt` is c
 {Time:2019-02-06 02:14:01.742672 +0015 GMT-00:20 Type:KeyDown Key:KeyType(11)}
 {Time:2019-02-06 02:14:01.892816 +0015 GMT-00:20 Type:KeyUp Key:KeyType(11)}
 ```
+
+## Day 16
+
+* Wrote a small program that used the  `freetype` package to draw text to the screen.
+
+## Day 17
+
+* Improved `text` program to have it wrap text at the end of a line and draw within a defined part of the screen.
