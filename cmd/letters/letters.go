@@ -2,66 +2,45 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"os/exec"
 	"strings"
-
-	"github.com/fogleman/gg"
 
 	"github.com/jim/kindleland"
 )
 
-func update(fb *kindleland.FrameBuffer, ctx *gg.Context, text string) error {
-	ctx.Clear()
-	ctx.SetRGB(0, 0, 0)
-	ctx.Fill()
-
-	ctx.SetRGB(1, 1, 1)
-	ctx.DrawStringAnchored(text, 300, 390, .5, .5)
-	fmt.Print("4 ")
-
-	img := ctx.Image()
-	fmt.Print("5 ")
-	if err := fb.ApplyImage(img); err != nil {
-		return err
-	}
-	fmt.Print("6 ")
-
-	return fb.UpdateScreen()
-}
-
 func main() {
-	// fb, err := kindleland.NewFrameBuffer("/dev/fb0", 600, 800)
-	// if err != nil {
-	// panic(err)
-	// }
+	fb, err := kindleland.NewFrameBuffer("/dev/fb0", 600, 800)
+	if err != nil {
+		panic(err)
+	}
 
-	// font, err := truetype.Parse(gobold.TTF)
-	// if err != nil {
-	// panic(err)
-	// }
-	// face := truetype.NewFace(font, &truetype.Options{Size: 450})
-
-	channel, err := kindleland.NewKeyboardListener("/dev/input/event1")
+	channel, err := kindleland.NewKeyboardListener("/dev/input/event0")
 	if err != nil {
 		panic(err)
 	}
 	for {
 		kevent := <-channel
+		fmt.Println(kevent)
+
 		if kevent.Type == kindleland.KeyDown {
 			fmt.Print(kevent.Name())
 
 			letter := strings.ToLower(kevent.Name())
 			go func() {
-				// fmt.Println("1 ")
-				// ctx := gg.NewContext(fb.Width, fb.Height)
-				// fmt.Println("2 ")
-				// ctx.SetFontFace(face)
-				// fmt.Println("3 ")
-				// update(fb, ctx, kevent.Name())
-				// fmt.Println("7")
+				tv := kindleland.NewTextView(letter, image.Rect(50, 50, 550, 750))
+
+				fb.ApplyImage(tv.Render())
+
+				if err := fb.UpdateScreen(); err != nil {
+					panic(err)
+				}
 			}()
+
 			say := exec.Command("say", letter)
-			say.Run()
+			if err := say.Run(); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }

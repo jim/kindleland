@@ -1,14 +1,17 @@
 package kindleland
 
 import (
+	"fmt"
 	"image"
 	"image/draw"
 	"log"
-	"strings"
+
+	"github.com/golang/freetype/truetype"
 
 	"github.com/golang/freetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/math/fixed"
 )
 
 type Page struct {
@@ -19,25 +22,18 @@ type Page struct {
 }
 
 type TextView struct {
-	Bounds     image.Rectangle
-	Text       string
-	Paragraphs []string
-	Pages      []Page
-	Page       int
+	Bounds image.Rectangle
+	Text   string
+	Pages  []Page
+	Page   int
+	Buffer *TextBuffer
 }
 
 func NewTextView(text string, bounds image.Rectangle) *TextView {
-	var paragraphs []string
-	for _, p := range strings.Split(text, "\n") {
-		if len(p) > 0 {
-			paragraphs = append(paragraphs, p)
-		}
-	}
-
 	return &TextView{
-		Text:       text,
-		Bounds:     bounds,
-		Paragraphs: paragraphs,
+		Text:   text,
+		Bounds: bounds,
+		Buffer: NewTextBuffer(text),
 	}
 }
 
@@ -71,22 +67,49 @@ func (tv *TextView) Render() *image.RGBA {
 	min := freetype.Pt(tv.Bounds.Min.X, tv.Bounds.Min.Y+int(c.PointToFixed(size)>>6))
 	pt := min
 	max := freetype.Pt(tv.Bounds.Max.X, tv.Bounds.Max.Y)
-	for _, p := range tv.Paragraphs {
-		for _, r := range p {
-			index := f.Index(r)
-			hmetric := f.HMetric(scale, index)
-			if pt.X+hmetric.AdvanceWidth > max.X {
-				pt.Y += c.PointToFixed(size * spacing)
-				pt.X = min.X
-			}
-			pt, err = c.DrawString(string(r), pt)
-			if err != nil {
-				log.Println(err)
-				return rgba
-			}
+	words := 0
+
+	for {
+		word, space, ok := tv.Buffer.NextWord()
+		fmt.Printf("%s, %s, %v\n", word, space, ok)
+		if !ok {
+			fmt.Println("not ok")
+			break
 		}
-		pt.Y += c.PointToFixed(size * spacing)
+		width := wordWidth(word, scale, f)
+		fmt.Println(word, width)
+		if pt.X+width >= max.X {
+			pt.Y += c.PointToFixed(size * spacing)
+			pt.X = min.X
+		}
+		if pt.Y > max.Y {
+			fmt.Println("hit bottom of view")
+			break
+		}
+		words++
+		pt, err = c.DrawString(word, pt)
+		if err != nil {
+			log.Println(err)
+			return rgba
+		}
+		pt, err = c.DrawString(space, pt)
+		if err != nil {
+			log.Println(err)
+			return rgba
+		}
 	}
 
+	fmt.Printf("wrote %d words\n", words)
+
 	return rgba
+}
+
+func wordWidth(word string, scale fixed.Int26_6, font *truetype.Font) fixed.Int26_6 {
+	sum := fixed.I(0)
+	for _, r := range word {
+		index := font.Index(r)
+		hmetric := font.HMetric(scale, index)
+		sum += hmetric.AdvanceWidth
+	}
+	return sum
 }
