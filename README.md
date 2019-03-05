@@ -407,3 +407,7 @@ I also discovered that the main keyboard send different keycodes when `Alt` is c
 ## Day 17
 
 * Improved `text` program to have it wrap text at the end of a line and draw within a defined part of the screen.
+
+## Day 18
+
+* Added a new `letters` program that allows large letters to be typed across the screen. It becomes sluggish when many keys are pressed quickly. I will need to add some throttling to the screen updating and move updating the buffer and telling the screen to refresh to a goroutine.

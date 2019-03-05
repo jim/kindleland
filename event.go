@@ -97,3 +97,11 @@ type KeyboardEvent struct {
 func (k KeyboardEvent) Name() string {
 	return strings.Replace(k.Key.String(), "Key", "", 1)
 }
+
+func (k KeyboardEvent) Value() string {
+	if k.Key == KeySpace {
+		return " "
+	}
+	letter := strings.Replace(k.Key.String(), "Key", "", 1)
+	return strings.ToLower(letter)
+}

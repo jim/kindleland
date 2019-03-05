@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/golang/freetype/truetype"
+	"github.com/pkg/errors"
 
 	"github.com/golang/freetype"
 	"golang.org/x/image/font"
@@ -27,6 +28,7 @@ type TextView struct {
 	Pages  []Page
 	Page   int
 	Buffer *TextBuffer
+	Size   float64
 }
 
 func NewTextView(text string, bounds image.Rectangle) *TextView {
@@ -37,18 +39,17 @@ func NewTextView(text string, bounds image.Rectangle) *TextView {
 	}
 }
 
-func (tv *TextView) Render() *image.RGBA {
+func (tv *TextView) Render() (*image.RGBA, error) {
 	fg, bg := image.White, image.Black
 
 	dpi := 168.0
-	size := 12.0
 	spacing := 1.5
 	rgba := image.NewRGBA(tv.Bounds)
 
 	f, err := freetype.ParseFont(goregular.TTF)
 	if err != nil {
 		log.Println(err)
-		return rgba
+		return nil, errors.Wrap(err, "failed to parse font")
 	}
 
 	draw.Draw(rgba, rgba.Bounds(), bg, image.ZP, draw.Src)
@@ -56,15 +57,15 @@ func (tv *TextView) Render() *image.RGBA {
 	c := freetype.NewContext()
 	c.SetDPI(dpi)
 	c.SetFont(f)
-	c.SetFontSize(size)
+	c.SetFontSize(tv.Size)
 	c.SetClip(tv.Bounds)
 	c.SetDst(rgba)
 	c.SetSrc(fg)
-	c.SetHinting(font.HintingNone)
+	c.SetHinting(font.HintingFull)
 
 	scale := c.PointToFixed(12)
 
-	min := freetype.Pt(tv.Bounds.Min.X, tv.Bounds.Min.Y+int(c.PointToFixed(size)>>6))
+	min := freetype.Pt(tv.Bounds.Min.X, tv.Bounds.Min.Y+int(c.PointToFixed(tv.Size)>>6))
 	pt := min
 	max := freetype.Pt(tv.Bounds.Max.X, tv.Bounds.Max.Y)
 	words := 0
@@ -79,7 +80,7 @@ func (tv *TextView) Render() *image.RGBA {
 		width := wordWidth(word, scale, f)
 		fmt.Println(word, width)
 		if pt.X+width >= max.X {
-			pt.Y += c.PointToFixed(size * spacing)
+			pt.Y += c.PointToFixed(tv.Size * spacing)
 			pt.X = min.X
 		}
 		if pt.Y > max.Y {
@@ -90,18 +91,18 @@ func (tv *TextView) Render() *image.RGBA {
 		pt, err = c.DrawString(word, pt)
 		if err != nil {
 			log.Println(err)
-			return rgba
+			return nil, errors.Wrap(err, "could not draw word")
 		}
 		pt, err = c.DrawString(space, pt)
 		if err != nil {
 			log.Println(err)
-			return rgba
+			return nil, errors.Wrap(err, "could not draw space")
 		}
 	}
 
 	fmt.Printf("wrote %d words\n", words)
 
-	return rgba
+	return rgba, nil
 }
 
 func wordWidth(word string, scale fixed.Int26_6, font *truetype.Font) fixed.Int26_6 {

@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"os/exec"
-	"strings"
 
 	"github.com/jim/kindleland"
 )
@@ -19,6 +17,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	var text string
+
 	for {
 		kevent := <-channel
 		fmt.Println(kevent)
@@ -26,21 +27,28 @@ func main() {
 		if kevent.Type == kindleland.KeyDown {
 			fmt.Print(kevent.Name())
 
-			letter := strings.ToLower(kevent.Name())
+			text += kevent.Value()
+
 			go func() {
-				tv := kindleland.NewTextView(letter, image.Rect(50, 50, 550, 750))
+				tv := kindleland.NewTextView(text, image.Rect(50, 50, 550, 750))
+				tv.Size = 24
 
-				fb.ApplyImage(tv.Render())
+				img, err := tv.Render()
+				if err != nil {
+					panic(err)
+				}
 
-				if err := fb.UpdateScreen(); err != nil {
+				fb.ApplyImage(img)
+
+				if err := fb.UpdateScreenFx(kindleland.FxUpdateFast); err != nil {
 					panic(err)
 				}
 			}()
 
-			say := exec.Command("say", letter)
-			if err := say.Run(); err != nil {
-				fmt.Println(err)
-			}
+			// say := exec.Command("say", letter)
+			// if err := say.Run(); err != nil {
+			// fmt.Println(err)
+			// }
 		}
 	}
 }
